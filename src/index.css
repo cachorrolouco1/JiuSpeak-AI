@@ -1,1 +1,93 @@
 @import "tailwindcss";
+
+/* JiuSpeak AI — Dark Theme matching JiuSpeak principal */
+:root {
+  --js-bg-primary: #0f0a1e;
+  --js-bg-secondary: #1a1333;
+  --js-bg-card: #1e1640;
+  --js-bg-input: #150f2e;
+  --js-border: #2d2255;
+  --js-border-hover: #3d3270;
+  --js-accent-amber: #f59e0b;
+  --js-accent-purple: #8b5cf6;
+  --js-accent-purple-light: #a78bfa;
+  --js-text-primary: #f1f0f5;
+  --js-text-secondary: #a09cb5;
+  --js-text-muted: #6b6585;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--js-bg-primary);
+  color: var(--js-text-primary);
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styling matching JiuSpeak */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--js-bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--js-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--js-border-hover);
+}
+
+/* Hide scrollbar on horizontal scroll containers */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Safe area for mobile — iOS notch + home bar */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Bottom nav height compensation */
+.mb-bottomnav {
+  margin-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Prevent overscroll bounce on iOS */
+html, body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Touch targets — minimum 44px on mobile */
+@media (max-width: 768px) {
+  button, a, select, input, textarea {
+    min-height: 44px;
+  }
+}
+
+/* Pulse animation for recording */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+/* Selection color */
+::selection {
+  background-color: #f59e0b;
+  color: #0f0a1e;
+}

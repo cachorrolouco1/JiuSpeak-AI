@@ -1,53 +1,82 @@
-import React, { useState } from 'react';
-import { Navbar } from './components/Navbar';
+import React, { useState, useEffect } from 'react';
 import { ChatView } from './components/ChatView';
-import { StudentProfileView } from './components/StudentProfileView';
-import { MemoryView } from './components/MemoryView';
-import { KnowledgeView } from './components/KnowledgeView';
-import { ExerciseView } from './components/ExerciseView';
-import { TeacherVoiceConfigView } from './components/TeacherVoiceConfigView';
-import { ApiDocsModal } from './components/ApiDocsModal';
+import { AdminPanel } from './components/AdminPanel';
+import { Shield, X } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<string>('chat');
-  const [isApiDocsOpen, setIsApiDocsOpen] = useState<boolean>(false);
+  // Admin ONLY via URL param ?admin=true — students never see anything
+  const [isAdmin] = useState<boolean>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('admin') === 'true';
+  });
+  const [showAdminPanel, setShowAdminPanel] = useState<boolean>(false);
   const studentId = 'std-carlos-123';
 
   return (
-    <div id="jiuspeak-app-root" className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-amber-500 selection:text-slate-950">
-      {/* Navigation Bar */}
-      <Navbar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onOpenApiDocs={() => setIsApiDocsOpen(true)}
-      />
+    <div className="h-screen flex flex-col overflow-hidden" style={{
+      backgroundColor: 'var(--js-bg-primary)',
+      color: 'var(--js-text-primary)',
+    }}>
+      {/* Minimal Header — clean for students */}
+      <header className="flex-none pt-safe z-40 flex items-center justify-between px-3 sm:px-6 h-12 sm:h-14" style={{
+        backgroundColor: 'var(--js-bg-secondary)',
+        borderBottom: '1px solid var(--js-border)',
+      }}>
+        <div className="flex items-center space-x-2.5">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-sm"
+            style={{
+              background: 'linear-gradient(135deg, #8b5cf6, #6d28d9, #f59e0b)',
+              boxShadow: '0 2px 10px rgba(139, 92, 246, 0.3)',
+            }}>JS</div>
+          <h1 className="text-sm sm:text-base font-bold tracking-tight">
+            JIUSPEAK <span style={{ color: 'var(--js-accent-amber)' }}>AI</span>
+          </h1>
+        </div>
 
-      {/* Main Tab View Router */}
-      <main className="pb-12">
-        {activeTab === 'chat' && <ChatView studentId={studentId} />}
-        {activeTab === 'profile' && <StudentProfileView studentId={studentId} />}
-        {activeTab === 'memory' && <MemoryView studentId={studentId} />}
-        {activeTab === 'knowledge' && <KnowledgeView />}
-        {activeTab === 'exercise' && <ExerciseView />}
-        {activeTab === 'voice-config' && <TeacherVoiceConfigView />}
+        {/* Admin button — ONLY if ?admin=true in URL */}
+        {isAdmin && (
+          <button onClick={() => setShowAdminPanel(!showAdminPanel)}
+            className="flex items-center space-x-1 text-[10px] font-bold px-2 py-1 rounded-full"
+            style={{
+              backgroundColor: showAdminPanel ? 'rgba(245,158,11,0.25)' : 'rgba(245,158,11,0.12)',
+              color: 'var(--js-accent-amber)',
+              border: '1px solid rgba(245,158,11,0.25)',
+            }}>
+            <Shield className="w-3 h-3" />
+            <span>ADMIN</span>
+          </button>
+        )}
+      </header>
+
+      {/* Full-screen Chat + Avatar */}
+      <main className="flex-1 min-h-0">
+        <ChatView studentId={studentId} />
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-6 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p>🥋 JiuSpeak AI Platform • Arquitetura Limpa & Inteligência Pedagógica de BJJ</p>
-          <div className="flex items-center space-x-4">
-            <button onClick={() => setIsApiDocsOpen(true)} className="hover:text-amber-400 underline">
-              OpenAPI Swagger
-            </button>
-            <span>•</span>
-            <span className="text-slate-400">Gemini 2.5 Flash & ElevenLabs HD</span>
+      {/* Admin Slide-Over Panel — only if admin */}
+      {isAdmin && showAdminPanel && (
+        <div className="fixed inset-0 z-50 flex">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAdminPanel(false)} />
+          <div className="relative ml-auto w-full max-w-lg h-full overflow-y-auto" style={{
+            backgroundColor: 'var(--js-bg-secondary)',
+            borderLeft: '1px solid var(--js-border)',
+          }}>
+            <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3" style={{
+              backgroundColor: 'var(--js-bg-secondary)',
+              borderBottom: '1px solid var(--js-border)',
+            }}>
+              <div className="flex items-center space-x-2">
+                <Shield className="w-4 h-4" style={{ color: 'var(--js-accent-amber)' }} />
+                <span className="text-sm font-bold" style={{ color: 'var(--js-accent-amber)' }}>Painel Admin</span>
+              </div>
+              <button onClick={() => setShowAdminPanel(false)} className="p-2 rounded-lg" style={{ color: 'var(--js-text-muted)' }}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <AdminPanel studentId={studentId} />
           </div>
         </div>
-      </footer>
-
-      {/* Swagger Modal */}
-      <ApiDocsModal isOpen={isApiDocsOpen} onClose={() => setIsApiDocsOpen(false)} />
+      )}
     </div>
   );
 }

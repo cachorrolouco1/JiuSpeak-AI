@@ -1,8 +1,9 @@
 /**
  * JiuSpeak AI - Express Backend Server Entry Point
- * Host: 0.0.0.0, Port: 3000
+ * Host: 0.0.0.0, Port: from .env (default 3001)
  */
 
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -15,7 +16,7 @@ import apiRoutes from './src/server/routes';
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = parseInt(process.env.PORT || '3001');
 
   // Global Middlewares
   app.use(cors());
@@ -26,7 +27,7 @@ async function startServer() {
   app.get('/api/health', (req, res) => {
     res.json({
       status: 'ok',
-      service: 'JiuSpeak AI Core Gateway',
+      service: 'JiuSpeak AI by JiuSpeak',
       version: '1.0.0',
       timestamp: new Date().toISOString(),
     });

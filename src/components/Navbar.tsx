@@ -1,185 +1,170 @@
 import React from 'react';
-import { Award, Zap, BookOpen, Database, Shield, Terminal, Mic } from 'lucide-react';
+import { Award, Zap, BookOpen, Database, Shield, Mic, ChevronDown } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onOpenApiDocs: () => void;
+  isAdmin: boolean;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenApiDocs }) => {
+export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenApiDocs, isAdmin }) => {
+  // Tabs que todo mundo vê
+  const studentTabs = [
+    { id: 'chat', label: 'AI Chat', icon: Zap },
+    { id: 'profile', label: 'Perfil', icon: Award },
+    { id: 'exercise', label: 'Exercícios', icon: Shield },
+  ];
+
+  // Tabs só para admin
+  const adminTabs = [
+    { id: 'memory', label: 'Memória', icon: Database },
+    { id: 'knowledge', label: 'RAG & Curriculum', icon: BookOpen },
+    { id: 'voice-config', label: 'Config. Vozes', icon: Mic },
+  ];
+
+  const visibleTabs = isAdmin ? [...studentTabs, ...adminTabs] : studentTabs;
+  // Mobile: aluno vê 3 tabs, admin vê 6
+  const mobileGridCols = isAdmin ? 'grid-cols-6' : 'grid-cols-3';
+
   return (
     <>
-      {/* Top Header Bar */}
-      <header id="jiuspeak-navbar" className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          {/* Brand */}
+      {/* Top Header Bar — estilo JiuSpeak principal */}
+      <header className="sticky top-0 z-40 pt-safe" style={{
+        backgroundColor: 'var(--js-bg-secondary)',
+        borderBottom: '1px solid var(--js-border)',
+      }}>
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
+
+          {/* Brand — JiuSpeak AI */}
           <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab('chat')}>
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-red-600 to-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-amber-500/20">
-              <span className="text-xl font-black">JS</span>
+            {/* Logo com gradiente roxo/amber igual ao JiuSpeak */}
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center font-bold text-white shadow-lg"
+              style={{
+                background: 'linear-gradient(135deg, #8b5cf6, #6d28d9, #f59e0b)',
+                boxShadow: '0 4px 15px rgba(139, 92, 246, 0.3)',
+              }}
+            >
+              <span className="text-lg font-black">JS</span>
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h1 className="text-lg font-bold tracking-tight text-white">JIUSPEAK <span className="text-amber-400 font-extrabold">AI</span></h1>
-                <span className="bg-slate-800 text-amber-300 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-amber-500/30">
-                  v1.0 REAL
+                <h1 className="text-base sm:text-lg font-bold tracking-tight" style={{ color: 'var(--js-text-primary)' }}>
+                  JIUSPEAK{' '}
+                  <span className="font-extrabold" style={{ color: 'var(--js-accent-amber)' }}>AI</span>
+                </h1>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{
+                  backgroundColor: 'rgba(139, 92, 246, 0.15)',
+                  color: 'var(--js-accent-purple-light)',
+                  border: '1px solid rgba(139, 92, 246, 0.3)',
+                }}>
+                  v1.0
                 </span>
               </div>
-              <p className="text-xs text-slate-400 hidden sm:block">Inteligência Artificial Educacional para BJJ</p>
+              <p className="text-xs hidden sm:block" style={{ color: 'var(--js-text-muted)' }}>
+                Professor Virtual de Inglês para BJJ
+              </p>
             </div>
           </div>
 
           {/* Desktop Navigation Tabs */}
-          <nav className="hidden md:flex items-center space-x-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
-            <button
-              id="nav-tab-chat"
-              onClick={() => setActiveTab('chat')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center space-x-2 ${
-                activeTab === 'chat' ? 'bg-amber-500 text-slate-950 font-bold shadow-md' : 'text-slate-300 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <Zap className="w-3.5 h-3.5" />
-              <span>AI Chat</span>
-            </button>
+          <nav className="hidden md:flex items-center space-x-1 p-1 rounded-xl" style={{
+            backgroundColor: 'var(--js-bg-primary)',
+            border: '1px solid var(--js-border)',
+          }}>
+            {visibleTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              const isAdminTab = adminTabs.some(a => a.id === tab.id);
 
-            <button
-              id="nav-tab-profile"
-              onClick={() => setActiveTab('profile')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center space-x-2 ${
-                activeTab === 'profile' ? 'bg-amber-500 text-slate-950 font-bold shadow-md' : 'text-slate-300 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <Award className="w-3.5 h-3.5" />
-              <span>Perfil</span>
-            </button>
-
-            <button
-              id="nav-tab-memory"
-              onClick={() => setActiveTab('memory')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center space-x-2 ${
-                activeTab === 'memory' ? 'bg-amber-500 text-slate-950 font-bold shadow-md' : 'text-slate-300 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <Database className="w-3.5 h-3.5" />
-              <span>Memória</span>
-            </button>
-
-            <button
-              id="nav-tab-knowledge"
-              onClick={() => setActiveTab('knowledge')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center space-x-2 ${
-                activeTab === 'knowledge' ? 'bg-amber-500 text-slate-950 font-bold shadow-md' : 'text-slate-300 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>RAG & Curriculum</span>
-            </button>
-
-            <button
-              id="nav-tab-exercise"
-              onClick={() => setActiveTab('exercise')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center space-x-2 ${
-                activeTab === 'exercise' ? 'bg-amber-500 text-slate-950 font-bold shadow-md' : 'text-slate-300 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <Shield className="w-3.5 h-3.5" />
-              <span>Exercícios</span>
-            </button>
-
-            <button
-              id="nav-tab-voice-config"
-              onClick={() => setActiveTab('voice-config')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center space-x-2 ${
-                activeTab === 'voice-config' ? 'bg-amber-500 text-slate-950 font-bold shadow-md' : 'text-slate-300 hover:text-white hover:bg-slate-800'
-              }`}
-            >
-              <Mic className="w-3.5 h-3.5 text-amber-400" />
-              <span>Config. Vozes</span>
-            </button>
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center space-x-2"
+                  style={isActive ? {
+                    background: 'linear-gradient(135deg, #8b5cf6, #f59e0b)',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    boxShadow: '0 2px 8px rgba(139, 92, 246, 0.3)',
+                  } : {
+                    color: isAdminTab ? 'var(--js-accent-purple-light)' : 'var(--js-text-secondary)',
+                  }}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
           </nav>
 
-          {/* Right Actions */}
+          {/* Right: Status indicator */}
           <div className="flex items-center space-x-2">
-            <div className="flex items-center space-x-1.5 bg-blue-950/80 border border-blue-500/30 px-2.5 py-1 rounded-full text-xs">
-              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-              <span className="text-blue-200 font-medium">Carlos</span>
-              <span className="bg-blue-600 text-white px-1.5 py-0.2 rounded text-[10px] font-bold">Azul</span>
+            <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs" style={{
+              backgroundColor: 'rgba(139, 92, 246, 0.12)',
+              border: '1px solid rgba(139, 92, 246, 0.25)',
+            }}>
+              <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--js-accent-purple)' }}></span>
+              <span className="font-medium" style={{ color: 'var(--js-accent-purple-light)' }}>Carlos</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{
+                backgroundColor: 'var(--js-accent-purple)',
+                color: '#ffffff',
+              }}>Azul</span>
             </div>
 
-            <button
-              id="btn-open-swagger"
-              onClick={onOpenApiDocs}
-              className="flex items-center space-x-1.5 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all min-h-[44px] sm:min-h-0"
-            >
-              <Terminal className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">API Docs</span>
-            </button>
+            {isAdmin && (
+              <span className="hidden sm:flex items-center space-x-1 text-[10px] font-bold px-2 py-1 rounded-full" style={{
+                backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                color: 'var(--js-accent-amber)',
+                border: '1px solid rgba(245, 158, 11, 0.25)',
+              }}>
+                <Shield className="w-3 h-3" />
+                <span>ADMIN</span>
+              </span>
+            )}
           </div>
         </div>
       </header>
 
-      {/* Fixed Mobile Bottom Navigation Bar (Mobile First - Touch Target >= 44px) */}
-      <nav id="jiuspeak-mobile-bottom-nav" className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-1 py-1 pb-safe">
-        <div className="grid grid-cols-6 gap-0.5 text-center">
-          <button
-            onClick={() => setActiveTab('chat')}
-            className={`flex flex-col items-center justify-center min-h-[48px] py-1 rounded-lg transition-all ${
-              activeTab === 'chat' ? 'text-amber-400 font-bold bg-slate-800/80' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Zap className="w-4 h-4 mb-0.5" />
-            <span className="text-[9px]">Chat</span>
-          </button>
+      {/* Mobile Bottom Navigation Bar — matching JiuSpeak principal */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md" style={{
+        backgroundColor: 'rgba(26, 19, 51, 0.97)',
+        borderTop: '1px solid var(--js-border)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}>
+        <div className={`grid ${mobileGridCols} gap-0 text-center`} style={{ height: '56px' }}>
+          {visibleTabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            const isAdminTab = adminTabs.some(a => a.id === tab.id);
 
-          <button
-            onClick={() => setActiveTab('profile')}
-            className={`flex flex-col items-center justify-center min-h-[48px] py-1 rounded-lg transition-all ${
-              activeTab === 'profile' ? 'text-amber-400 font-bold bg-slate-800/80' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Award className="w-4 h-4 mb-0.5" />
-            <span className="text-[9px]">Perfil</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('memory')}
-            className={`flex flex-col items-center justify-center min-h-[48px] py-1 rounded-lg transition-all ${
-              activeTab === 'memory' ? 'text-amber-400 font-bold bg-slate-800/80' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Database className="w-4 h-4 mb-0.5" />
-            <span className="text-[9px]">Memória</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('knowledge')}
-            className={`flex flex-col items-center justify-center min-h-[48px] py-1 rounded-lg transition-all ${
-              activeTab === 'knowledge' ? 'text-amber-400 font-bold bg-slate-800/80' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <BookOpen className="w-4 h-4 mb-0.5" />
-            <span className="text-[9px]">RAG</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('exercise')}
-            className={`flex flex-col items-center justify-center min-h-[48px] py-1 rounded-lg transition-all ${
-              activeTab === 'exercise' ? 'text-amber-400 font-bold bg-slate-800/80' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Shield className="w-4 h-4 mb-0.5" />
-            <span className="text-[9px]">Exercício</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('voice-config')}
-            className={`flex flex-col items-center justify-center min-h-[48px] py-1 rounded-lg transition-all ${
-              activeTab === 'voice-config' ? 'text-amber-400 font-bold bg-slate-800/80' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Mic className="w-4 h-4 mb-0.5 text-amber-400" />
-            <span className="text-[9px]">Vozes</span>
-          </button>
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className="flex flex-col items-center justify-center h-full relative transition-colors active:opacity-70"
+                style={{
+                  color: isActive
+                    ? 'var(--js-accent-amber)'
+                    : isAdminTab
+                      ? 'var(--js-accent-purple-light)'
+                      : 'var(--js-text-muted)',
+                  fontWeight: isActive ? 700 : 400,
+                }}
+              >
+                {/* Active indicator dot — matching JiuSpeak */}
+                {isActive && (
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full" style={{
+                    backgroundColor: 'var(--js-accent-amber)',
+                  }} />
+                )}
+                <Icon className="w-5 h-5" />
+                <span className="text-[10px] mt-0.5 leading-tight">
+                  {tab.id === 'voice-config' ? 'Vozes' : tab.id === 'knowledge' ? 'RAG' : tab.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </nav>
     </>
