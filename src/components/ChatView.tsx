@@ -25,7 +25,7 @@ const TEACHERS = {
     voiceId: '4J31DrhygVjvFsoj7BsM',
     gender: 'MALE',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
-    greeting: 'Oss! Sou o Professor Marcos. Vamos treinar seu inglês de Jiu-Jitsu? Pode falar ou digitar!',
+    greeting: '',  // set dynamically below
   },
   carol: {
     id: 'carol',
@@ -34,7 +34,7 @@ const TEACHERS = {
     voiceId: 'KHmfNHtEjHhLK9eER20w',
     gender: 'FEMALE',
     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=800&q=80',
-    greeting: 'Oss! Sou a Professora Carol. Vamos praticar conversação em inglês no tatame? Fala comigo!',
+    greeting: '',  // set dynamically below
   },
 };
 
@@ -82,7 +82,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ studentId }) => {
     setMessages([{
       id: 'welcome',
       role: 'assistant',
-      content: teacher.greeting,
+      content: `Oi ${studentName !== 'Você' ? studentName : 'aluno'}! Bora tirar suas dúvidas agora ou quer só praticar? 🥋`,
       createdAt: new Date().toISOString(),
     }]);
   }, []);
@@ -392,14 +392,15 @@ export const ChatView: React.FC<ChatViewProps> = ({ studentId }) => {
           className="flex items-center space-x-2 px-3 py-2.5">
 
           {/* Mic */}
-          <button type="button" onClick={isRecording ? stopRecording : startRecording}
-            className="flex-none w-10 h-10 rounded-full flex items-center justify-center transition-all"
-            style={isRecording ? { backgroundColor: '#dc2626', color: '#fff' } : {
+          <button type="button"
+            onPointerDown={(e) => { e.preventDefault(); isRecording ? stopRecording() : startRecording(); }}
+            className="flex-none w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-90 select-none touch-manipulation"
+            style={isRecording ? { backgroundColor: '#dc2626', color: '#fff', boxShadow: '0 0 12px rgba(220,38,38,0.5)' } : {
               backgroundColor: 'var(--js-bg-card)',
               color: 'var(--js-accent-purple-light)',
-              border: '1px solid var(--js-border)',
+              border: '2px solid var(--js-border)',
             }}>
-            {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
           </button>
 
           {/* Input */}
@@ -432,106 +433,84 @@ export const ChatView: React.FC<ChatViewProps> = ({ studentId }) => {
         </form>
       </div>
 
-      {/* ===== LIVE VIDEO CONFERENCE MODAL ===== */}
+      {/* ===== LIVE VIDEO CALL — WhatsApp Style ===== */}
       {isLiveMode && (
-        <div className="fixed inset-0 z-50 flex flex-col" style={{ backgroundColor: '#000' }}>
-          {/* Header */}
-          <div className="flex-none pt-safe flex items-center justify-between px-3 py-2" style={{
-            backgroundColor: 'rgba(0,0,0,0.9)',
-            borderBottom: '1px solid rgba(255,255,255,0.1)',
-          }}>
-            <div className="flex items-center space-x-2">
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-xs font-bold" style={{ color: '#fca5a5' }}>AO VIVO</span>
-              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>• {teacher.name}</span>
-            </div>
-            <button onClick={exitLiveMode}
-              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-red-600 text-white">
-              <PhoneOff className="w-3.5 h-3.5" />
-              <span>Encerrar</span>
-            </button>
-          </div>
-
-          {/* Professor (top — large) — D-ID video or static fallback */}
-          <div className="flex-1 relative overflow-hidden">
+        <div className="fixed inset-0 z-50" style={{ backgroundColor: '#000' }}>
+          {/* Professor fullscreen */}
+          <div className="absolute inset-0">
             {professorVideoUrl ? (
-              <video
-                ref={professorVideoRef}
-                src={professorVideoUrl}
-                autoPlay
-                playsInline
+              <video ref={professorVideoRef} src={professorVideoUrl} autoPlay playsInline
                 className="w-full h-full object-cover"
                 onPlay={() => setIsSpeaking(true)}
                 onEnded={() => { setIsSpeaking(false); setProfessorVideoUrl(null); }}
-                onError={() => setProfessorVideoUrl(null)}
-              />
+                onError={() => setProfessorVideoUrl(null)} />
             ) : (
               <img src={teacher.avatar} alt={teacher.name}
                 className="w-full h-full object-cover"
-                style={{ filter: isSpeaking ? 'brightness(1)' : 'brightness(0.6)' }}
-              />
+                style={{ filter: isSpeaking ? 'brightness(1)' : 'brightness(0.7)' }} />
             )}
-            <div className="absolute inset-0" style={{
-              background: 'linear-gradient(0deg, rgba(0,0,0,0.5) 0%, transparent 40%)',
-            }} />
-
-            {isSpeaking && (
-              <div className="absolute bottom-4 left-4 flex items-center space-x-2 px-3 py-1.5 rounded-full backdrop-blur-md" style={{
-                backgroundColor: 'rgba(245,158,11,0.2)',
-                border: '1px solid rgba(245,158,11,0.4)',
-              }}>
-                <span className="flex space-x-[2px]">
-                  {[1,2,3,4,5].map(i => (
-                    <span key={i} className="w-[3px] rounded-full inline-block" style={{
-                      backgroundColor: 'var(--js-accent-amber)',
-                      height: `${6 + Math.random() * 10}px`,
-                      animation: `pulse ${0.3 + i * 0.1}s ease-in-out infinite alternate`,
-                    }} />
-                  ))}
-                </span>
-                <span className="text-xs font-bold" style={{ color: 'var(--js-accent-amber)' }}>
-                  {teacher.name} falando...
-                </span>
-              </div>
-            )}
-
-            <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg backdrop-blur-md text-xs font-bold" style={{
-              backgroundColor: 'rgba(0,0,0,0.5)', color: '#fff',
-            }}>{teacher.name}</div>
           </div>
 
-          {/* Student (bottom — small) */}
-          <div className="flex-none relative" style={{
-            height: '25vh', minHeight: '140px', maxHeight: '220px',
-            backgroundColor: '#111',
-            borderTop: '2px solid var(--js-accent-purple)',
+          {/* Top bar */}
+          <div className="absolute top-0 left-0 right-0 pt-safe px-4 py-3 flex items-center justify-between z-10" style={{
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 100%)',
+          }}>
+            <div>
+              <p className="text-white font-bold text-base">{teacher.name}</p>
+              <p className="text-green-400 text-xs font-medium flex items-center space-x-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+                <span>JiuSpeak AI</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Speaking indicator */}
+          {isSpeaking && (
+            <div className="absolute top-20 left-1/2 -translate-x-1/2 flex items-center space-x-2 px-4 py-2 rounded-full z-10" style={{
+              backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
+            }}>
+              <span className="flex space-x-[2px]">
+                {[1,2,3,4,5].map(i => (
+                  <span key={i} className="w-[3px] rounded-full inline-block" style={{
+                    backgroundColor: '#f59e0b',
+                    height: `${8 + Math.random() * 12}px`,
+                    animation: `pulse ${0.3 + i * 0.12}s ease-in-out infinite alternate`,
+                  }} />
+                ))}
+              </span>
+              <span className="text-xs font-bold text-amber-400">Falando...</span>
+            </div>
+          )}
+
+          {/* PIP — student camera (top-right, WhatsApp style) */}
+          <div className="absolute top-20 right-3 z-20 rounded-2xl overflow-hidden shadow-2xl" style={{
+            width: '110px', height: '150px',
+            border: '2px solid rgba(255,255,255,0.2)',
           }}>
             <video ref={userVideoRef} autoPlay playsInline muted
               className="w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
+          </div>
 
-            <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md backdrop-blur-md text-[10px] font-bold" style={{
-              backgroundColor: 'rgba(0,0,0,0.5)', color: '#fff',
-            }}>{studentName}</div>
-
-            {/* Controls */}
-            <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center space-x-4 py-3 pb-safe" style={{
-              background: 'linear-gradient(0deg, rgba(0,0,0,0.8), transparent)',
-            }}>
-              <button onClick={() => setIsMuted(!isMuted)}
-                className="w-11 h-11 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: isMuted ? '#dc2626' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
-                {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+          {/* Bottom controls — WhatsApp style */}
+          <div className="absolute bottom-0 left-0 right-0 pb-safe z-10" style={{
+            background: 'linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 100%)',
+          }}>
+            <div className="flex items-center justify-center space-x-6 py-6">
+              <button onClick={() => setIsCameraOn(!isCameraOn)}
+                className="w-12 h-12 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: !isCameraOn ? '#dc2626' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
+                {isCameraOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
               </button>
 
               <button onClick={exitLiveMode}
-                className="w-14 h-14 rounded-full flex items-center justify-center bg-red-600 text-white shadow-lg">
-                <PhoneOff className="w-5 h-5" />
+                className="w-16 h-16 rounded-full flex items-center justify-center bg-red-600 text-white shadow-xl shadow-red-600/30">
+                <PhoneOff className="w-6 h-6" />
               </button>
 
-              <button onClick={() => setIsCameraOn(!isCameraOn)}
-                className="w-11 h-11 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: !isCameraOn ? '#dc2626' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
-                {isCameraOn ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+              <button onClick={() => setIsMuted(!isMuted)}
+                className="w-12 h-12 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: isMuted ? '#dc2626' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
+                {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
               </button>
             </div>
           </div>
