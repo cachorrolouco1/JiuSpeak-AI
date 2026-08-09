@@ -61,6 +61,8 @@ export const ChatView: React.FC<ChatViewProps> = ({ studentId }) => {
   const [recordingTime, setRecordingTime] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLiveMode, setIsLiveMode] = useState(false);
+  const [showLiveChoice, setShowLiveChoice] = useState(false);
+  const [liveType, setLiveType] = useState<"individual" | "group">("individual");
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(true);
   const [professorVideoUrl, setProfessorVideoUrl] = useState<string | null>(null);
@@ -443,7 +445,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ studentId }) => {
           />
 
           {/* Live call */}
-          <button type="button" onClick={() => isLiveMode ? exitLiveMode() : enterLiveMode()}
+          <button type="button" onClick={() => isLiveMode ? exitLiveMode() : setShowLiveChoice(true)}
             className="flex-none w-10 h-10 rounded-full flex items-center justify-center transition-all"
             style={isLiveMode ? { backgroundColor: '#dc2626', color: '#fff' } : {
               background: 'linear-gradient(135deg, #8b5cf6, #f59e0b)', color: '#fff',
@@ -460,6 +462,16 @@ export const ChatView: React.FC<ChatViewProps> = ({ studentId }) => {
         </form>
       </div>
 
+
+      {/* ===== LIVE LOBBY ===== */}
+      {showLiveChoice && !isLiveMode && (
+        <LiveLobby
+          teacherName={teacher.name}
+          onJoinGroup={(roomId: string) => { setLiveType("group"); setShowLiveChoice(false); enterLiveMode(roomId); }}
+          onStartIndividual={() => { setLiveType("individual"); setShowLiveChoice(false); enterLiveMode(); }}
+          onClose={() => setShowLiveChoice(false)}
+        />
+      )}
       {/* ===== LIVE VIDEO CALL — WhatsApp Adaptive Grid ===== */}
       {isLiveMode && (
         <div className="fixed inset-0 z-50" style={{ backgroundColor: '#000' }}>
@@ -514,8 +526,8 @@ export const ChatView: React.FC<ChatViewProps> = ({ studentId }) => {
             );
           })()}
 
-          {/* PIP — my camera (top-right, always visible like WhatsApp) */}
-          {participants.length <= 1 && (
+          {/* PIP — my camera (always visible) */}
+          {(
             <div className="absolute top-20 right-3 z-20 rounded-2xl overflow-hidden shadow-2xl" style={{
               width: '110px', height: '150px',
               border: '2px solid rgba(255,255,255,0.2)',

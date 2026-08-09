@@ -13,6 +13,7 @@ import { authMiddleware } from './src/server/auth.middleware';
 import { rateLimitMiddleware } from './src/server/rate-limit.middleware';
 import { loggerMiddleware } from './src/server/logger.middleware';
 import apiRoutes from './src/server/routes';
+import { initLiveSocket } from './src/server/live-socket';
 
 async function startServer() {
   const app = express();
@@ -53,7 +54,8 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  const httpServer = app.listen(PORT, '0.0.0.0', () => {
+    initLiveSocket(httpServer);
     console.log(`🥋 JiuSpeak AI Server listening on http://0.0.0.0:${PORT}`);
   });
 }
