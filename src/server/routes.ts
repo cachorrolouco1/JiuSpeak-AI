@@ -6,6 +6,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { getFullStudentContext } from '../db/student-context';
+import { getActiveRooms } from './live-socket';
 import { createTalkingVideo } from '../tts/did-avatar';
 import { Router, Request, Response } from 'express';
 import { GeminiModelAdapter } from '../ai-core/gemini.adapter';
@@ -478,6 +479,16 @@ router.post('/admin/teachers/voice-config/batch', async (req: Request, res: Resp
 // 15. GET /api/ai/swagger.json - OpenAPI Spec
 router.get('/swagger.json', (req: Request, res: Response) => {
   res.json(swaggerSpec);
+});
+
+// GET active live rooms
+router.get('/live-rooms', (req, res) => {
+  res.json({ success: true, rooms: getActiveRooms() });
+});
+
+// GET active live rooms
+router.get('/live-rooms', (req, res) => {
+  res.json({ success: true, rooms: getActiveRooms() });
 });
 
 export default router;

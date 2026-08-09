@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { io, Socket } from 'socket.io-client';
+import { LiveLobby } from './LiveLobby';
 import {
   Send, Mic, MicOff, Phone, PhoneOff,
   Volume2, Video, VideoOff, RefreshCw,
@@ -62,6 +64,9 @@ export const ChatView: React.FC<ChatViewProps> = ({ studentId }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(true);
   const [professorVideoUrl, setProfessorVideoUrl] = useState<string | null>(null);
+  const [participants, setParticipants] = useState<any[]>([]);
+  const socketRef = useRef<Socket | null>(null);
+  const liveRoomId = 'jiuspeak-live-' + teacherId;
   const professorVideoRef = useRef<HTMLVideoElement>(null);
   const urlParams = new URLSearchParams(window.location.search);
   const studentAvatar = urlParams.get('avatar') || '';
@@ -120,14 +125,36 @@ export const ChatView: React.FC<ChatViewProps> = ({ studentId }) => {
     userStreamRef.current = null;
   };
 
-  const enterLiveMode = async () => {
+  const enterLiveMode = async (joinRoomId?: string) => {
     setIsLiveMode(true);
     await startUserCamera();
+    // Connect to live socket
+    const socket = io(window.location.origin, { path: '/live-socket' });
+    socketRef.current = socket;
+    socket.emit('join-room', {
+      roomId: joinRoomId || liveRoomId,
+      participant: {
+        id: '',
+        name: studentName || 'Aluno',
+        avatar: studentAvatar || '',
+        belt: new URLSearchParams(window.location.search).get('belt') || 'White',
+        isTeacher: false,
+        isMuted: false,
+        isCameraOn: true,
+      },
+    });
+    socket.on('participants-updated', (list: any[]) => setParticipants(list));
   };
 
   const exitLiveMode = () => {
     setIsLiveMode(false);
     stopUserCamera();
+    if (socketRef.current) {
+      socketRef.current.emit('leave-room', liveRoomId);
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+    setParticipants([]);
   };
 
   // Audio recording
@@ -433,23 +460,70 @@ export const ChatView: React.FC<ChatViewProps> = ({ studentId }) => {
         </form>
       </div>
 
-      {/* ===== LIVE VIDEO CALL — WhatsApp Style ===== */}
+      {/* ===== LIVE VIDEO CALL — WhatsApp Adaptive Grid ===== */}
       {isLiveMode && (
         <div className="fixed inset-0 z-50" style={{ backgroundColor: '#000' }}>
-          {/* Professor fullscreen */}
-          <div className="absolute inset-0">
-            {professorVideoUrl ? (
-              <video ref={professorVideoRef} src={professorVideoUrl} autoPlay playsInline
-                className="w-full h-full object-cover"
-                onPlay={() => setIsSpeaking(true)}
-                onEnded={() => { setIsSpeaking(false); setProfessorVideoUrl(null); }}
-                onError={() => setProfessorVideoUrl(null)} />
-            ) : (
-              <img src={teacher.avatar} alt={teacher.name}
-                className="w-full h-full object-cover"
-                style={{ filter: isSpeaking ? 'brightness(1)' : 'brightness(0.7)' }} />
-            )}
-          </div>
+          {/* Adaptive Grid: 1 = fullscreen, 2 = split, 3-4 = 2x2, 5-6 = 3x2 */}
+          {(() => {
+            const totalPeople = participants.length + 1; // +1 for teacher
+            const gridClass = totalPeople <= 1 ? '' : totalPeople === 2 ? 'grid grid-rows-2' : totalPeople <= 4 ? 'grid grid-cols-2 grid-rows-2' : 'grid grid-cols-3 grid-rows-2';
+            const isOnlyMe = totalPeople <= 2; // just teacher + me
+
+            return (
+              <div className={`absolute inset-0 ${gridClass}`}>
+                {/* Professor — always first tile */}
+                <div className={`relative overflow-hidden ${isOnlyMe ? 'col-span-full row-span-full' : ''}`}>
+                  {professorVideoUrl ? (
+                    <video ref={professorVideoRef} src={professorVideoUrl} autoPlay playsInline
+                      className="w-full h-full object-cover"
+                      onPlay={() => setIsSpeaking(true)}
+                      onEnded={() => { setIsSpeaking(false); setProfessorVideoUrl(null); }}
+                      onError={() => setProfessorVideoUrl(null)} />
+                  ) : (
+                    <img src={teacher.avatar} alt={teacher.name}
+                      className="w-full h-full object-cover"
+                      style={{ filter: isSpeaking ? 'brightness(1)' : 'brightness(0.7)' }} />
+                  )}
+                  <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md text-xs font-bold" style={{
+                    backgroundColor: 'rgba(0,0,0,0.6)', color: '#fff', backdropFilter: 'blur(4px)',
+                  }}>
+                    {teacher.name}
+                    {isSpeaking && <span className="ml-1.5 text-amber-400">\u25CF falando</span>}
+                  </div>
+                </div>
+
+                {/* Other participants from socket */}
+                {participants.filter(p => !p.isTeacher).map((p, i) => (
+                  <div key={p.id || i} className="relative overflow-hidden bg-slate-900">
+                    {p.avatar ? (
+                      <img src={p.avatar} alt={p.name} className="w-full h-full object-cover" style={{ filter: 'brightness(0.8)' }} />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#1a1333' }}>
+                        <span className="text-3xl font-black text-purple-400">{(p.name || '?')[0].toUpperCase()}</span>
+                      </div>
+                    )}
+                    <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md text-xs font-bold" style={{
+                      backgroundColor: 'rgba(0,0,0,0.6)', color: '#fff',
+                    }}>
+                      {p.name}
+                      {p.isMuted && <span className="ml-1 text-red-400">\U0001f507</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
+          {/* PIP — my camera (top-right, always visible like WhatsApp) */}
+          {participants.length <= 1 && (
+            <div className="absolute top-20 right-3 z-20 rounded-2xl overflow-hidden shadow-2xl" style={{
+              width: '110px', height: '150px',
+              border: '2px solid rgba(255,255,255,0.2)',
+            }}>
+              <video ref={userVideoRef} autoPlay playsInline muted
+                className="w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
+            </div>
+          )}
 
           {/* Top bar */}
           <div className="absolute top-0 left-0 right-0 pt-safe px-4 py-3 flex items-center justify-between z-10" style={{
@@ -459,44 +533,20 @@ export const ChatView: React.FC<ChatViewProps> = ({ studentId }) => {
               <p className="text-white font-bold text-base">{teacher.name}</p>
               <p className="text-green-400 text-xs font-medium flex items-center space-x-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
-                <span>JiuSpeak AI</span>
+                <span>{participants.length + 1} na chamada</span>
               </p>
             </div>
+            <span className="text-xs font-mono px-2 py-1 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: '#fff' }}>
+              {participants.length + 1} \U0001f465
+            </span>
           </div>
 
-          {/* Speaking indicator */}
-          {isSpeaking && (
-            <div className="absolute top-20 left-1/2 -translate-x-1/2 flex items-center space-x-2 px-4 py-2 rounded-full z-10" style={{
-              backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
-            }}>
-              <span className="flex space-x-[2px]">
-                {[1,2,3,4,5].map(i => (
-                  <span key={i} className="w-[3px] rounded-full inline-block" style={{
-                    backgroundColor: '#f59e0b',
-                    height: `${8 + Math.random() * 12}px`,
-                    animation: `pulse ${0.3 + i * 0.12}s ease-in-out infinite alternate`,
-                  }} />
-                ))}
-              </span>
-              <span className="text-xs font-bold text-amber-400">Falando...</span>
-            </div>
-          )}
-
-          {/* PIP — student camera (top-right, WhatsApp style) */}
-          <div className="absolute top-20 right-3 z-20 rounded-2xl overflow-hidden shadow-2xl" style={{
-            width: '110px', height: '150px',
-            border: '2px solid rgba(255,255,255,0.2)',
-          }}>
-            <video ref={userVideoRef} autoPlay playsInline muted
-              className="w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
-          </div>
-
-          {/* Bottom controls — WhatsApp style */}
+          {/* Bottom controls */}
           <div className="absolute bottom-0 left-0 right-0 pb-safe z-10" style={{
             background: 'linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 100%)',
           }}>
             <div className="flex items-center justify-center space-x-6 py-6">
-              <button onClick={() => setIsCameraOn(!isCameraOn)}
+              <button onClick={() => { setIsCameraOn(!isCameraOn); socketRef.current?.emit('toggle-camera', liveRoomId); }}
                 className="w-12 h-12 rounded-full flex items-center justify-center"
                 style={{ backgroundColor: !isCameraOn ? '#dc2626' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
                 {isCameraOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
@@ -507,7 +557,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ studentId }) => {
                 <PhoneOff className="w-6 h-6" />
               </button>
 
-              <button onClick={() => setIsMuted(!isMuted)}
+              <button onClick={() => { setIsMuted(!isMuted); socketRef.current?.emit('toggle-mute', liveRoomId); }}
                 className="w-12 h-12 rounded-full flex items-center justify-center"
                 style={{ backgroundColor: isMuted ? '#dc2626' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
                 {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
