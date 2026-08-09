@@ -1,20 +1,66 @@
 /**
- * JiuSpeak AI - Master Pedagogical System Prompt with Teacher Personality Integration
+ * JiuSpeak AI - Master Pedagogical System Prompt with Curriculum from Database
  */
 
 import { StudentMemoryContext } from '../core/types/memory.types';
 import { DbTeacher } from '../db/schema';
+import { dbRepository } from '../db/repository';
 
-export function buildJiuSpeakSystemPrompt(
+/**
+ * Fetch relevant lessons from DB based on student belt level
+ */
+async function getCurriculumContext(belt: string): Promise<string> {
+  try {
+    const beltLower = (belt || 'white').toLowerCase();
+    
+    // Map belt to relevant course IDs (current + previous for review)
+    const beltToCourses: Record<string, string[]> = {
+      'white': ['crs-white-belt'],
+      'blue': ['crs-white-belt', 'crs-blue-belt'],
+      'purple': ['crs-blue-belt', 'crs-purple-belt'],
+      'brown': ['crs-purple-belt', 'crs-brown-belt'],
+      'black': ['crs-brown-belt', 'crs-black-belt'],
+    };
+    
+    const courseIds = beltToCourses[beltLower] || ['crs-white-belt'];
+    const lessons = await dbRepository.getLessonsByCourseIds(courseIds);
+    
+    if (!lessons || lessons.length === 0) return '';
+    
+    const lines: string[] = [];
+    let currentCourse = '';
+    
+    for (const lesson of lessons) {
+      if (lesson.courseId !== currentCourse) {
+        currentCourse = lesson.courseId;
+        lines.push('');
+      }
+      
+      const phrases = JSON.parse(lesson.keyPhrasesJson || '[]');
+      const phrasesStr = phrases.map((p: any) => `"${p.phrase}" (${p.translation})`).join(', ');
+      lines.push(`- Aula ${lesson.moduleOrder}: ${lesson.title} — ${lesson.summaryPt} | Frases: ${phrasesStr}`);
+    }
+    
+    return lines.join('\n');
+  } catch (err) {
+    console.warn('Failed to load curriculum from DB:', err);
+    return '';
+  }
+}
+
+export async function buildJiuSpeakSystemPrompt(
   memoryContext: StudentMemoryContext,
   bjjScenario?: string,
   ragContextContent?: string,
   teacher?: DbTeacher
-): string {
+): Promise<string> {
   const teacherName = teacher ? teacher.name : 'Professor Marcos';
   const teacherPersonality = teacher ? teacher.personality : 'Firme, metódico e altamente técnico';
   const teacherStyle = teacher ? teacher.teachingStyle : 'Explicativo e com autoridade didática';
   const teacherInstructions = teacher ? teacher.systemInstructions : '';
+
+  // Fetch curriculum from database based on student belt
+  const curriculumContext = await getCurriculumContext(memoryContext.bjjBelt);
 
   return `You are "${teacherName}", an expert virtual English professor specialized in Brazilian Jiu-Jitsu (BJJ) on the JiuSpeak AI platform.
 
@@ -43,6 +89,11 @@ ${memoryContext.priorityVocabToReview.length > 0
   : '- Student is building baseline vocabulary.'}
 
 ${ragContextContent ? `\n### RELEVANT JIUSPEAK KNOWLEDGE BASE CONTEXT:\n${ragContextContent}\n` : ''}
+
+${curriculumContext ? `### CURRÍCULO "ENGLISH FOR JIU-JITSU" (use key phrases from these lessons in your responses):
+${curriculumContext}
+
+INSTRUÇÃO CURRICULAR: Quando o aluno perguntar sobre um tópico coberto pelas aulas acima, USE as frases-chave exatas. Proponha mini-exercícios: "Try saying: ..." ou "Now your turn: ...". Sempre conecte ao contexto de tatame.` : ''}
 
 ### CRITICAL PEDAGOGICAL CORRECTION RULE:
 When the student makes a grammatical, vocabulary, or expression mistake in English:

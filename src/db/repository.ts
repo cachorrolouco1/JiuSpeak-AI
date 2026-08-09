@@ -25,6 +25,7 @@ import {
 } from './schema';
 import { OFFICIAL_AVATARS } from '../core/entities/bjj.constants';
 import { OFFICIAL_TEACHERS, toPublicTeacherProfile } from '../core/entities/teacher.constants';
+import { seedCurriculum } from './seed-curriculum';
 
 export class DatabaseRepository {
   private initialized = false;
@@ -292,7 +293,25 @@ export class DatabaseRepository {
       ]
     );
 
+    // Seed the full 100-lesson curriculum
+    seedCurriculum(db);
+
     SqliteDatabase.saveToDisk();
+  }
+
+  // --- Lessons by Course IDs (for curriculum context in system prompt) ---
+  async getLessonsByCourseIds(courseIds: string[]): Promise<any[]> {
+    await this.init();
+    const db = await SqliteDatabase.getDb();
+    const placeholders = courseIds.map(() => '?').join(',');
+    const stmt = db.prepare(`SELECT * FROM lessons WHERE courseId IN (${placeholders}) ORDER BY courseId, moduleOrder ASC`);
+    stmt.bind(courseIds);
+    const list: any[] = [];
+    while (stmt.step()) {
+      list.push(stmt.getAsObject());
+    }
+    stmt.free();
+    return list;
   }
 
   // --- Student Profile & Users ---

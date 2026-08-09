@@ -3,6 +3,10 @@
  * Implements all endpoints required for JiuSpeak platform integration
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
+import { getFullStudentContext } from '../db/student-context';
+import { createTalkingVideo } from '../tts/did-avatar';
 import { Router, Request, Response } from 'express';
 import { GeminiModelAdapter } from '../ai-core/gemini.adapter';
 import { AICoreOrchestrator } from '../ai-core/ai-core.orchestrator';
@@ -83,6 +87,16 @@ router.post('/chat', async (req: Request, res: Response) => {
     const ragResults = await ragService.searchKnowledge({ query: userMessageText });
     const ragContent = ragResults.map((r) => `${r.title}\n${r.content}`).join('\n\n');
 
+    // Buscar contexto completo do aluno no PostgreSQL do JiuSpeak
+    let studentContextText = "";
+    try {
+      const ctx = await getFullStudentContext(studentId);
+      if (ctx) {
+        studentContextText = ctx.contextText;
+        console.log("📋 Student context loaded:", studentContextText.substring(0, 200));
+      }
+    } catch (e) { console.warn("Student context fetch failed:", e); }
+
     // Retrieve Conversation History from SQLite
     const convId = conversationId || `conv-${Date.now()}`;
     const historyMessages = await dbRepository.getMessagesByConversation(convId);
@@ -101,7 +115,7 @@ router.post('/chat', async (req: Request, res: Response) => {
       })),
       memoryContext,
       bjjScenario,
-      ragContent,
+      ragContent + "\n\n" + studentContextText,
       teacher
     );
 
@@ -136,14 +150,14 @@ router.post('/chat', async (req: Request, res: Response) => {
       }
     }
 
-    // Generate Avatar Video output if requested
+    // Generate Avatar Video via D-ID (lip-sync real com foto do professor + áudio ElevenLabs)
     let generatedVideoUrl: string | undefined | null;
-    if (mode === 'avatar_video') {
-      const vid = await avatarService.renderEducationalVideo({
-        avatarId: avatarId || 'prof-jiuspeak-master',
-        scriptText: aiResult.assistantResponseText,
-      });
-      generatedVideoUrl = vid.videoUrl;
+    if (generatedAudioUrl && teacher) {
+      try {
+        const teacherImage = teacher.id === 'carol' ? 'https://ai.jiuspeak.com.br/teachers/carol.jpg' : 'https://ai.jiuspeak.com.br/teachers/marcos.jpg';
+        const videoUrl = await createTalkingVideo(teacherImage, generatedAudioUrl);
+        if (videoUrl) generatedVideoUrl = videoUrl;
+      } catch (e) { console.warn('D-ID video generation failed:', e); }
     }
 
     // Save user message to SQL repository

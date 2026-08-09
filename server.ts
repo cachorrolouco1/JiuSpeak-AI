@@ -45,6 +45,8 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
+    app.use("/audio", express.static(path.join(process.cwd(), "public", "audio")));
+    app.use("/teachers", express.static(path.join(process.cwd(), "public", "teachers")));
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));

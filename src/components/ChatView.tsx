@@ -61,6 +61,11 @@ export const ChatView: React.FC<ChatViewProps> = ({ studentId }) => {
   const [isLiveMode, setIsLiveMode] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(true);
+  const [professorVideoUrl, setProfessorVideoUrl] = useState<string | null>(null);
+  const professorVideoRef = useRef<HTMLVideoElement>(null);
+  const urlParams = new URLSearchParams(window.location.search);
+  const studentAvatar = urlParams.get('avatar') || '';
+  const studentName = urlParams.get('studentName') || 'Você';
   const [conversationId] = useState(`conv-${Date.now()}`);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -215,6 +220,11 @@ export const ChatView: React.FC<ChatViewProps> = ({ studentId }) => {
           createdAt: new Date().toISOString(),
         };
         setMessages(prev => [...prev, aiMsg]);
+
+        // Set professor video if available (D-ID lip-sync)
+        if (json.data.videoUrl) {
+          setProfessorVideoUrl(json.data.videoUrl);
+        }
 
         // Auto-play voice
         if (json.data.audioUrl) {
@@ -442,12 +452,25 @@ export const ChatView: React.FC<ChatViewProps> = ({ studentId }) => {
             </button>
           </div>
 
-          {/* Professor (top — large) */}
+          {/* Professor (top — large) — D-ID video or static fallback */}
           <div className="flex-1 relative overflow-hidden">
-            <img src={teacher.avatar} alt={teacher.name}
-              className="w-full h-full object-cover"
-              style={{ filter: isSpeaking ? 'brightness(1)' : 'brightness(0.6)' }}
-            />
+            {professorVideoUrl ? (
+              <video
+                ref={professorVideoRef}
+                src={professorVideoUrl}
+                autoPlay
+                playsInline
+                className="w-full h-full object-cover"
+                onPlay={() => setIsSpeaking(true)}
+                onEnded={() => { setIsSpeaking(false); setProfessorVideoUrl(null); }}
+                onError={() => setProfessorVideoUrl(null)}
+              />
+            ) : (
+              <img src={teacher.avatar} alt={teacher.name}
+                className="w-full h-full object-cover"
+                style={{ filter: isSpeaking ? 'brightness(1)' : 'brightness(0.6)' }}
+              />
+            )}
             <div className="absolute inset-0" style={{
               background: 'linear-gradient(0deg, rgba(0,0,0,0.5) 0%, transparent 40%)',
             }} />
@@ -488,7 +511,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ studentId }) => {
 
             <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md backdrop-blur-md text-[10px] font-bold" style={{
               backgroundColor: 'rgba(0,0,0,0.5)', color: '#fff',
-            }}>Você</div>
+            }}>{studentName}</div>
 
             {/* Controls */}
             <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center space-x-4 py-3 pb-safe" style={{

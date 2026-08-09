@@ -37,7 +37,7 @@ export class GeminiModelAdapter implements IModelAdapter {
         config: {
           systemInstruction: options.systemInstruction,
           temperature: options.temperature ?? 0.7,
-          maxOutputTokens: options.maxOutputTokens ?? 1024,
+          maxOutputTokens: options.maxOutputTokens ?? 4096,
           ...(options.responseMimeType ? { responseMimeType: options.responseMimeType } : {}),
         },
       });
@@ -97,9 +97,11 @@ export class GeminiModelAdapter implements IModelAdapter {
     }
 
     try {
+      console.log("GEMINI RAW:", cleanedText.substring(0, 300));
       const data = JSON.parse(cleanedText) as T;
       return { data, usage };
-    } catch (err) {
+    } catch (err: any) {
+      console.error("JSON PARSE FAILED:", err.message, "RAW:", cleanedText.substring(0, 200));
       const safetyFallback = {
         assistantResponseText: 'Oss! Vamos continuar praticando os diálogos de Jiu-Jitsu.',
         pedagogicalFeedback: {

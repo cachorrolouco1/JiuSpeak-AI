@@ -38,7 +38,7 @@ export class AICoreOrchestrator implements IAICoreService {
     pedagogicalFeedback?: ModelStructuredOutput['pedagogicalFeedback'];
     costEstimate: CostEstimate;
   }> {
-    const systemPrompt = buildJiuSpeakSystemPrompt(memoryContext, bjjScenario, ragContextContent, teacher);
+    const systemPrompt = await buildJiuSpeakSystemPrompt(memoryContext, bjjScenario, ragContextContent, teacher);
     const teacherName = teacher ? teacher.name : 'JiuSpeak AI';
 
     const formattedHistory = conversationHistory
